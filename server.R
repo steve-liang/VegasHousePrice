@@ -15,6 +15,7 @@ server <- function(input, output, session) {
       need(nrow(d)>0, "No markets meet your search criteria.")
     )
     
+    # Remove outlier?
     if(input$removeOutlier){
       d <- d[d$pps < median(d$pps) + 20*sd(d$pps),]
       d <- d[d$lot_size < median(na.omit(d$lot_size)) + 10*sd(na.omit(d$lot_size))  | is.nan(d$lot_size),]
@@ -29,6 +30,11 @@ server <- function(input, output, session) {
     selectInput("homeType", label = "Home Type:", choices = c("All Type", as.character(homeTypes)), selected = "All Type", selectize = FALSE)
   })
   
+  output$zipUi <- renderUI({
+    zips <- sort(unique(d$zip))
+    selectInput("zip", label = "Zip Code:", choices = c("All", as.character(zips)), selected = "All", selectize = FALSE)
+  })
+  
   output$driverUi <- renderUI({
     drivers <- c("bedrooms", "bathrooms", "type", "size_sqft", "lot_size", "distance", "zip")
     selectInput("driver", label = "Price Driver:", choices = drivers, selected = "size_sqft", selectize = FALSE)
@@ -39,10 +45,15 @@ server <- function(input, output, session) {
     selectInput("comparer", label = "What to see:", choices = comparers, selected = "pps", selectize = FALSE)
   })
   
+  output$attrUi <- renderUI({
+    
+    attrs <- c("bedrooms", "bathrooms", "type", "size_sqft", "lot_size", "distance")
+    selectInput("attr", label = "Attribute:", choices = attrs, selected = "bedrooms", selectize = FALSE)
+  })
   
   output$removeOutlierUi <- renderUI({
     
-    checkboxInput("removeOutlier", label = "Remove Outliers?", FALSE)
+    checkboxInput("removeOutlier", label = "Remove Outliers?", TRUE)
   })
   
   output$total_obs <- renderValueBox({
@@ -145,6 +156,30 @@ server <- function(input, output, session) {
       scale_fill_gradient2(high = "blue") + 
       coord_map()
     
+  })
+  
+  output$zipAnalyzer <- renderPlot({
+    
+    d <- getData()
+    d <- d %>% mutate(bathrooms = full_bathrooms + half_bathrooms * 0.5)
+    
+    attri <- input$attr
+    
+    if(attri != "type"){
+      
+    ggplot(d, aes(x = reorder(zip,-pps))) + 
+      geom_boxplot(aes_string(y = attri )) +
+      labs(x = "Zip Code Sorted by Price Per Square Feet") +
+      theme(axis.text.x = element_text(angle = 45, vjust = 1, size = 12, hjust = 1))
+    }
+    else{
+      
+      ggplot(d, aes(x = reorder(zip, -pps))) + 
+        geom_bar(aes(y = type, fill = type), stat = "identity") +
+        labs(x = "Zip Code Sorted by Price Per Square Feet") +
+        scale_y_discrete(breaks = seq(0,10000, 1000)) +
+        theme(axis.text.x = element_text(angle = 45, vjust = 1, size = 12, hjust = 1))
+    }
   })
   
 }

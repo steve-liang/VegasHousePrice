@@ -3,10 +3,7 @@ library(shinydashboard)
 sidebar <- dashboardSidebar(
   sidebarMenu(id = "sbm",   # crucial to name sidebarMenu 
               menuItem("Overview", tabName = "overview", icon = icon("dashboard")),
-              conditionalPanel(
-                condition = "input.sbm == 'overview' | input.sbm == 'factor'",  
-                uiOutput("homeTypeUi")
-              ),
+              uiOutput("homeTypeUi"),
               menuItem("Factor", tabName = "factor", icon = icon("line-chart")),
               conditionalPanel(
                 condition = "input.sbm == 'factor'",
@@ -17,6 +14,12 @@ sidebar <- dashboardSidebar(
               conditionalPanel(
                 condition = "input.sbm == 'geographic'",
                 uiOutput("comparerUi")
+              ),
+              menuItem("Top Zip Analysis", tabName = "topZip", icon = icon("list-ol")
+              ),
+              conditionalPanel(
+                condition = "input.sbm == 'topZip'",
+                uiOutput("attrUi")
               ),
               uiOutput("removeOutlierUi")
   )
@@ -91,8 +94,19 @@ body <- dashboardBody(
                 plotOutput("geoplot", height = 700)
               )
             )
+    ),
+    tabItem(tabName = "topZip",
+            fluidRow(
+              box(
+                title = "for top zip analysis",
+                status = "primary",
+                width = 12,
+                height = 800,
+                solidHeader = TRUE,
+                plotOutput("zipAnalyzer", height = 700)
+              )
+            )
     )
-    
   )
   
   
