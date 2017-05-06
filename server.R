@@ -36,7 +36,7 @@ server <- function(input, output, session) {
   })
   
   output$driverUi <- renderUI({
-    drivers <- c("bedrooms", "bathrooms", "type", "size_sqft", "lot_size", "distance", "zip")
+    drivers <- c("bedrooms", "bathrooms", "type", "size_sqft", "lot_size", "distance")
     selectInput("driver", label = "Price Driver:", choices = drivers, selected = "size_sqft", selectize = FALSE)
   })
   
