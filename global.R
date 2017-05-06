@@ -1,7 +1,6 @@
 library(ggplot2)
 library(dplyr)
 library(ggmap)
-library(Imap)
 library(plotly)
 
 
