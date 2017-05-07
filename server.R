@@ -5,7 +5,7 @@ library(plotly)
 library(shiny)
 library(shinydashboard)
 
-data <- readr::read_csv("housing.csv")
+data <- read.csv("housing.csv", stringsAsFactors = FALSE)
 lv_map <- get_map("Las Vegas", maptype = "roadmap", source = "google", zoom = 10)
 
 shinyServer(function(input, output, session) {
