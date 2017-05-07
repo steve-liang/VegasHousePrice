@@ -8,7 +8,7 @@ library(shinydashboard)
 data <- readr::read_csv("housing.csv")
 lv_map <- get_map("Las Vegas", maptype = "roadmap", source = "google", zoom = 10)
 
-server <- function(input, output, session) {
+shinyServer(function(input, output, session) {
   
   # Retrieves Data for Value Presentation
   getData <- function(){
@@ -190,4 +190,4 @@ server <- function(input, output, session) {
     }
   })
   
-}
+})

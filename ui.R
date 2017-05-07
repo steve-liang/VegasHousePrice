@@ -115,8 +115,8 @@ body <- dashboardBody(
 )
 
 # Put them together into a dashboardPage
-dashboardPage(
+shinyUI(dashboardPage(
   dashboardHeader(title = "LV Dashboard"),
   sidebar,
   body
-)
+))
