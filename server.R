@@ -1,9 +1,17 @@
+library(ggplot2)
+library(dplyr)
+library(ggmap)
+library(plotly)
+library(shiny)
+library(shinydashboard)
+
+data <- readr::read_csv("housing.csv")
+lv_map <- get_map("Las Vegas", maptype = "roadmap", source = "google", zoom = 10)
 
 server <- function(input, output, session) {
   
-  
   # Retrieves Data for Value Presentation
-  getData <- reactive({
+  getData <- function(){
     if(as.character(input$homeType) == "All Type"){
       d <- data  # No filter needed
     }
@@ -23,15 +31,17 @@ server <- function(input, output, session) {
     }
     
     return(d)
-  })
+  }
   
   output$homeTypeUi <- renderUI({
-    homeTypes <- sort(unique(d$type))
-    selectInput("homeType", label = "Home Type:", choices = c("All Type", as.character(homeTypes)), selected = "All Type", selectize = FALSE)
+    homeTypes <- sort(unique(data$type))
+    selectInput("homeType", label = "Home Type:", 
+                choices = c("All Type", as.character(homeTypes)), 
+                selected = "All Type", selectize = FALSE)
   })
   
   output$zipUi <- renderUI({
-    zips <- sort(unique(d$zip))
+    zips <- sort(unique(data$zip))
     selectInput("zip", label = "Zip Code:", choices = c("All", as.character(zips)), selected = "All", selectize = FALSE)
   })
   
@@ -46,13 +56,11 @@ server <- function(input, output, session) {
   })
   
   output$attrUi <- renderUI({
-    
     attrs <- c("bedrooms", "bathrooms", "type", "size_sqft", "lot_size", "distance")
     selectInput("attr", label = "Attribute:", choices = attrs, selected = "bedrooms", selectize = FALSE)
   })
   
   output$removeOutlierUi <- renderUI({
-    
     checkboxInput("removeOutlier", label = "Remove Outliers?", TRUE)
   })
   

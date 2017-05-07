@@ -1,4 +1,6 @@
+library(shiny)
 library(shinydashboard)
+library(plotly)
 
 sidebar <- dashboardSidebar(
   sidebarMenu(id = "sbm",   # crucial to name sidebarMenu 
