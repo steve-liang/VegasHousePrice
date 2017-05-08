@@ -103,7 +103,8 @@ varImpPlot(rf, type = 2)
 
 # Validate with new data set
 pred.rf <- predict(rf, test_set, predict.all=TRUE)
-sqrt(mean((test_set$pps-pred.rf$aggregate)^2)) 
+cat("R2:" , 1 - (sum((test_set$pps-pred.rf$aggregate)^2)/sum((test_set$pps-mean(test_set$pps))^2)))
+cat("RMSE: ", sqrt(mean((test_set$pps-pred.rf$aggregate)^2))) 
 
 
 # Use simple decision tree for interpretable modeling
