@@ -36,27 +36,51 @@ d <- d %>% mutate(lon = as.numeric(str_split(GEOCODE, ",")[[1]][1]),
 # File is ready, save as a csv for Shiny
 readr::write_csv(d, "housing.csv")
 
-# zip with high price sqft
+# Clear outliers
+d <- d[d$pps < median(d$pps) + 20*sd(d$pps),]
+d <- d[d$lot_size < median(na.omit(d$lot_size)) + 10*sd(na.omit(d$lot_size))  | is.nan(d$lot_size),]
 
-ggplot(d) + geom_boxplot(aes(x = reorder(zip, -pps), y = pps)) +
-  theme(axis.text.x = element_text(angle = 60, vjust = 1, size = 9, hjust = 1))
+# add bathrooms field 
+d <- d %>% mutate(bathrooms = full_bathrooms + 0.5 * half_bathrooms)
 
 
-lv_map <- get_map("Las Vegas", maptype = "terrain", source = "google", zoom = 12)
-ggmap(lv_map) %+% d + 
-       aes(x = lon,
-           y = lat,
-           z = pps) + 
-  stat_summary2d(fun = median, binwidth = c(.05, .05)) + 
-  scale_colour_gradient(low = "green", high = "red") +
-  coord_map()
+features <- select(d, bedrooms, bathrooms, size_sqft, lot_size, type, distance, pps)
 
-# Top 10 zip
+# Need to impute lot_size and distance
+colSums(is.na(features))
 
-top10 <- d %>% group_by(zip) %>% summarise(med = median(price)) %>% arrange(desc(med)) %>% top_n(10)
-ggplot(top10) + geom_bar(aes(reorder(zip, -med), med, fill = as.factor(zip)), stat = "identity") +
-  labs(title = "Top 10 Zip Code By Median Home Price", x = "Zip Code", y = "Median Price") + 
-  scale_y_continuous(labels = scales::dollar, breaks = seq(0,1000000,50000)) + 
-  theme(legend.position="none")
+# use rpart to predict lot_size and impute missing values
+predictLot<- rpart(lot_size~bedrooms+bathrooms+type+pps+size_sqft,data=features[!is.na(features$lot_size),],method="anova")
+rpart.plot(predictLot)
+features$lot_size[is.na(features$lot_size)] <- predict(predictLot,data= features[is.na(features$lot_size)])
 
+# simply use mean to impute distance
+features$distance[is.na(features$distance)] <- mean(na.omit(features$distance))
+
+###########################################
+#
+# Split data for Cross Validation
+############################################
+
+library(rpart)
+
+f <- features %>% mutate(log_pps = log(pps))
+
+
+library(randomForest)
+
+control <- trainControl(method="cv", number=10, search="grid")
+set.seed(1102)
+tunegrid <- expand.grid(.mtry=c(1:5))
+rf_gridsearch <- train(log_pps~., data = select(f, -pps), method="rf", metric="RMSE", tuneGrid=tunegrid, trControl=control)
+print(rf_gridsearch)
+plot(rf_gridsearch)
+
+
+rf <-  randomForest(data = select(f, -pps), log_pps~., 
+                    ntree = 1000, mtry = 4, 
+                    importance = T, keep.forest = T, 
+                    na.action = na.omit)
+
+varImpPlot(rf, type = 2)
 

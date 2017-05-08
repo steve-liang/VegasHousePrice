@@ -1,6 +1,7 @@
 source('~/GitHub/dsPack.R')
 library(stringr)
 
+# read in data files
 data <- readr::read_csv('realtor_extract.csv')
 geocode <- readr::read_csv('census_geocoder_results.csv')
 dim(data)
