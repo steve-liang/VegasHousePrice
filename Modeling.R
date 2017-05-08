@@ -2,6 +2,8 @@ library(ggmap)
 library(Imap)
 str(mydata)
 
+options("scipen"=100, "digits"=4)
+
 # id seems to be irrelevant
 mydata <- select(mydata, -id)
 
@@ -23,7 +25,7 @@ dist.to.strip <- function(geo){
   strip.lon <- as.numeric(str_split(STRIP, ",")[[1]][1])
   strip.lat <- as.numeric(str_split(STRIP, ",")[[1]][2])
   
-  gdist(lont1, lati1, strip.lon, strip.lat, units = "miles")
+  Imap::gdist(lont1, lati1, strip.lon, strip.lat, units = "miles")
 }
 
 # New features (distance to strip, price per sqft, split GEOCODE to lon/lat)
@@ -57,30 +59,54 @@ features$lot_size[is.na(features$lot_size)] <- predict(predictLot,data= features
 # simply use mean to impute distance
 features$distance[is.na(features$distance)] <- mean(na.omit(features$distance))
 
+# standardization and create bath/bedroom ratio
+features <- features %>% mutate(bb.ratio = bathrooms/bedrooms, bedrooms = bedrooms/size_sqft, bathrooms = bathrooms/size_sqft)
+
+features$type = as.factor(features$type)
 ###########################################
 #
 # Split data for Cross Validation
 ############################################
 
-library(rpart)
+## 80% of the sample size
+smp_size <- floor(0.8 * nrow(features))
 
-f <- features %>% mutate(log_pps = log(pps))
+## set the seed to make your partition reproductible
+set.seed(123)
+train_index <- sample(seq_len(nrow(features)), size = smp_size)
 
+train_set <- features[train_index, ]
+test_set <- features[-train_index, ]
+
+
+############################################
 
 library(randomForest)
 
+# Use 10-fold CV to tune mtry
 control <- trainControl(method="cv", number=10, search="grid")
-set.seed(1102)
 tunegrid <- expand.grid(.mtry=c(1:5))
-rf_gridsearch <- train(log_pps~., data = select(f, -pps), method="rf", metric="RMSE", tuneGrid=tunegrid, trControl=control)
+rf_gridsearch <- train(pps~., data = train_set, method="rf", metric="RMSE", tuneGrid=tunegrid, trControl=control)
 print(rf_gridsearch)
 plot(rf_gridsearch)
 
 
-rf <-  randomForest(data = select(f, -pps), log_pps~., 
-                    ntree = 1000, mtry = 4, 
+# Build a RF Model with mtry = 5
+rf <-  randomForest(data = train_set, pps~., 
+                    ntree = 1000, mtry = 3, 
                     importance = T, keep.forest = T, 
                     na.action = na.omit)
 
+# RMSE 66.36
+
 varImpPlot(rf, type = 2)
+
+# Validate with new data set
+pred.rf <- predict(rf, test_set, predict.all=TRUE)
+sqrt(mean((test_set$pps-pred.rf$aggregate)^2)) 
+
+
+# Use simple decision tree for interpretable modeling
+treeModel<- rpart(pps~bedrooms+distance+size_sqft,data=features, method = "anova")
+rpart.plot(treeModel)
 
